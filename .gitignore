@@ -1,0 +1,106 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build output
+dist
+dist-ssr
+build
+out
+*.local
+
+# Media folder (build artifacts)
+media/
+
+# Coverage directory used by tools like istanbul
+coverage
+*.lcov
+.nyc_output
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+
+.kiro/*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# TypeScript
+*.tsbuildinfo
+*.d.ts.map
+*.js.map
+
+# Vite
+.vite
+vite.config.*.timestamp-*
+
+# Cache
+.cache
+.parcel-cache
+.eslintcache
+.stylelintcache
+
+# Testing
+/cypress/videos/
+/cypress/screenshots/
+__screenshots__/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Temporary files
+*.tmp
+*.temp
+.temp/
+.tmp/
+
+# Package manager lock files (optional - uncomment if you want to ignore)
+# pnpm-lock.yaml
+# package-lock.json
+# yarn.lock
+
+# Debug
+.vscode-test/
+*.code-workspace
+
+# Optional: Uncomment if using Storybook
+# storybook-static

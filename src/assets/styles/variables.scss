@@ -1,0 +1,171 @@
+// 全局 SCSS 变量
+// 适配 VSCode 主题变量
+
+// ============================================
+// VSCode 配色常量定义
+// ============================================
+
+// ========== 编辑器相关 ==========
+// 编辑器主背景色，用于整个编辑器区域
+$vscode-editor-background: var(--vscode-editor-background, #1e1e1e);
+// 编辑器文本颜色（用于表头等）
+$vscode-editor-foreground: var(--vscode-editor-foreground, #cccccc);
+// 编辑器小部件背景色，用于代码块、提示框等
+$vscode-editorWidget-background: var(--vscode-editorWidget-background, #141414);
+// 编辑器警告文本颜色
+$vscode-editorWarning-foreground: var(--vscode-editorWarning-foreground, #cca700);
+// 编辑器括号匹配边框颜色（用于悬停行等）
+$vscode-editorBracketMatch-border: var(--vscode-editorBracketMatch-border, #094771);
+
+// ========== 输入框相关 ==========
+// 输入框背景色
+$vscode-input-background: var(--vscode-input-background, #252526);
+// 输入框文本颜色
+$vscode-input-foreground: var(--vscode-input-foreground, #cccccc);
+// 输入框占位符文本颜色
+$vscode-input-placeholderForeground: var(--vscode-input-placeholderForeground, #858585);
+
+// ========== 面板/边框相关 ==========
+// 面板边框颜色，用于分隔面板区域
+$vscode-panel-border: var(--vscode-panel-border, #3c3c3c);
+// 聚焦时的边框颜色
+$vscode-focusBorder: var(--vscode-focusBorder, #007acc);
+
+// ========== 文本/前景色相关 ==========
+// 主前景色/文本颜色，用于大部分文本内容
+$vscode-foreground: var(--vscode-foreground, #cccccc);
+// 链接文本颜色
+$vscode-textLink-foreground: var(--vscode-textLink-foreground, #3794ff);
+// 选中文本的颜色
+$vscode-text-selected: var(--vscode-text-selected, #3794ff);
+
+// ========== 按钮相关 ==========
+// 按钮背景色
+$vscode-button-background: var(--vscode-button-background, #007acc);
+// 按钮悬停时的背景色
+$vscode-button-hoverBackground: var(--vscode-button-hoverBackground, #005a9e);
+
+// ========== 侧边栏相关 ==========
+// 侧边栏背景色（用于对话框、侧边栏等）
+$vscode-sideBar-background: var(--vscode-sideBar-background, #252526);
+// 侧边栏前景色/文本颜色
+$vscode-sideBar-foreground: var(--vscode-sideBar-foreground, #cccccc);
+
+// ========== 列表相关 ==========
+// 列表背景色
+$vscode-list-background: var(--vscode-list-background, #252526);
+// 列表项悬停时的背景色
+$vscode-list-hoverBackground: var(--vscode-list-hoverBackground, #2a2d2e);
+// 列表项激活选择时的背景色
+$vscode-list-activeSelectionBackground: var(--vscode-list-activeSelectionBackground, #094771);
+// 列表项激活选择时的文本颜色
+$vscode-list-activeSelectionForeground: var(--vscode-list-activeSelectionForeground, #ffffff);
+
+// ========== 菜单相关 ==========
+// 菜单背景色
+$vscode-menu-background: var(--vscode-menu-background, #c2d1ff);
+// 菜单项选中时的背景色
+$vscode-menu-selectionBackground: var(--vscode-menu-selectionBackground, #c2d1ff);
+// 菜单文本颜色
+$vscode-menu-foreground: var(--vscode-menu-foreground, #ccc);
+// 菜单边框颜色
+$vscode-menu-border: var(--vscode-menu-border, #ccc);
+
+// ========== 表格相关 ==========
+// 表格背景色
+$vscode-table-background: var(--vscode-table-background, #252526);
+
+// ========== 徽章相关 ==========
+// 徽章背景色
+$vscode-badge-background: var(--vscode-badge-background, #4d4d4d);
+// 徽章文本颜色
+$vscode-badge-foreground: var(--vscode-badge-foreground, #ffffff);
+
+// ========== 复选框相关 ==========
+// 复选框背景色
+$vscode-checkbox-background: var(--vscode-checkbox-background, #3c3c3c);
+// 复选框边框颜色
+$vscode-checkbox-border: var(--vscode-checkbox-border, #3c3c3c);
+// 复选框选中时的边框颜色
+$vscode-checkbox-selectBorder: var(--vscode-checkbox-selectBorder, #007acc);
+// 复选框选中时的背景色
+$vscode-checkbox-selectBackground: var(--vscode-checkbox-selectBackground, #007acc);
+
+// ========== 状态/提示相关 ==========
+// 错误文本颜色
+$vscode-errorForeground: var(--vscode-errorForeground, #f48771);
+// 终端 ANSI 绿色（成功提示）
+$vscode-terminal-ansiGreen: var(--vscode-terminal-ansiGreen, #4ec9b0);
+
+// ============================================
+// 语义化颜色变量（基于 VSCode 常量）
+// ============================================
+
+// 主色调
+$primary-color: $vscode-button-background;
+$primary-hover-color: $vscode-button-hoverBackground;
+
+// 文本颜色
+$text-color: $vscode-foreground;
+$text-selected: $vscode-text-selected;
+$text-link: $vscode-textLink-foreground;
+
+// 背景颜色
+$background-color: $vscode-editor-background;
+$background-editor: $vscode-editorWidget-background;
+$background-input: $vscode-input-background;
+$background-menu: $vscode-menu-background;
+$background-menu-selection: $vscode-menu-selectionBackground;
+$hover-background: $vscode-list-hoverBackground;
+$active-background: $vscode-list-activeSelectionBackground;
+
+// 边框颜色
+$border-color: $vscode-panel-border;
+$border-menu: $vscode-menu-border;
+$border-focus: $vscode-focusBorder;
+
+// 状态颜色
+$error-color: $vscode-errorForeground;
+$warning-color: $vscode-editorWarning-foreground;
+$success-color: $vscode-terminal-ansiGreen;
+
+// 菜单颜色
+$foreground-menu: $vscode-menu-foreground;
+
+// 字体变量
+$font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+$font-size-base: var(--vscode-font-size, 13px);
+$font-size-small: 12px;
+$font-size-large: 14px;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 600;
+
+// 间距变量
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 20px;
+$spacing-xxl: 24px;
+
+// 圆角变量
+$border-radius-sm: 2px;
+$border-radius-md: 4px;
+$border-radius-lg: 6px;
+
+// 阴影变量
+$box-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+$box-shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
+$box-shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
+
+// 过渡变量
+$transition-fast: 0.15s ease;
+$transition-base: 0.3s ease;
+$transition-slow: 0.5s ease;
+
+// Z-index 层级
+$z-index-dropdown: 1000;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
