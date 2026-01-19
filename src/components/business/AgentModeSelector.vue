@@ -1,40 +1,31 @@
 <script setup lang="ts">
 /**
- * ModelSelector 组件 - 模型选择器组件（业务组件）
- * 职责：模型选择
- * - 显示当前选中模型
- * - 下拉列表展示所有模型
- * - 支持模型切换
- * - 显示模型描述（tooltip）
+ * AgentModeSelector 组件 - Agent 模式选择器组件（业务组件）
+ * 职责：Agent 模式选择
+ * - 显示当前选中模式
+ * - 下拉列表展示所有模式
+ * - 支持模式切换
  */
 import { ref, computed, watch } from 'vue'
-import { ElPopover, ElTooltip } from 'element-plus'
+import { ElPopover } from 'element-plus'
 import { ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 
 /**
- * 聊天模型数据类型定义
+ * Agent 模式数据类型定义
  */
-interface ChatModel {
-  /** 模型ID */
-  id?: string | number
-  /** 模型名称（唯一标识） */
-  modelName: string
-  /** 模型显示名称 */
-  displayName?: string
-  /** 模型描述 */
-  modelDescription?: string
-  /** 其他可选属性 */
-  [key: string]: unknown
+interface AgentMode {
+  /** 模式值 */
+  value: 'chat' | 'agent'
+  /** 模式显示名称 */
+  displayName: string
 }
 
 /**
  * 组件 Props 定义
  */
 interface Props {
-  /** 模型列表 */
-  models: ChatModel[]
-  /** 当前选中的模型名称 */
-  currentModel: string
+  /** 当前选中的模式值 */
+  currentMode: 'chat' | 'agent'
   /** 是否显示弹出框 */
   visible?: boolean
   /** 容器ID（用于刷新定位） */
@@ -47,31 +38,35 @@ interface Props {
 interface Emits {
   /** 更新显示状态事件 */
   (e: 'update:visible', visible: boolean): void
-  /** 模型切换事件 */
-  (e: 'model-change', model: ChatModel): void
+  /** 模式切换事件 */
+  (e: 'mode-change', mode: 'chat' | 'agent'): void
   /** 打开弹出框事件（用于触发数据加载） */
   (e: 'open'): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  models: () => [],
-  currentModel: '',
+  currentMode: 'chat',
   visible: false,
   containerId: '',
 })
 
 const emit = defineEmits<Emits>()
 
+/** Agent 模式列表 */
+const agentModes: AgentMode[] = [
+  { value: 'chat', displayName: 'Chat' },
+  { value: 'agent', displayName: 'Agent' },
+]
+
 /** 弹出框显示状态 */
 const popoverVisible = ref(props.visible)
 
 /**
- * 当前选中模型的显示名称
+ * 当前选中模式的显示名称
  */
-const displayModelName = computed(() => {
-  if (!props.currentModel) return ''
-  const foundModel = props.models.find((item) => item.modelName === props.currentModel)
-  return foundModel ? foundModel.displayName || foundModel.modelName : ''
+const displayModeName = computed(() => {
+  const foundMode = agentModes.find((item) => item.value === props.currentMode)
+  return foundMode ? foundMode.displayName : 'Chat'
 })
 
 /**
@@ -86,12 +81,12 @@ const handleSelectClick = (): void => {
 }
 
 /**
- * 处理模型切换
+ * 处理模式切换
  */
-const handleModelChange = (model: ChatModel): void => {
+const handleModeChange = (mode: 'chat' | 'agent'): void => {
   popoverVisible.value = false
   emit('update:visible', false)
-  emit('model-change', model)
+  emit('mode-change', mode)
 }
 
 /**
@@ -113,11 +108,11 @@ watch(
 
 <template>
   <el-popover v-model:visible="popoverVisible" placement="top" trigger="click" width="220px" :show-arrow="false"
-    popper-class="model-popover-class" @update:visible="(val) => emit('update:visible', val)">
+    popper-class="agent-mode-popover-class" @update:visible="(val) => emit('update:visible', val)">
     <template #reference>
-      <div class="model-select" @click="handleSelectClick">
+      <div class="agent-mode-select" @click="handleSelectClick">
         <i class="iconfont icon-moxing"></i>
-        <span class="select-tag">{{ displayModelName || '选择模型' }}</span>
+        <span class="select-tag">{{ displayModeName }}</span>
         <el-icon class="arrow-icon">
           <ArrowDown v-if="!popoverVisible" />
           <ArrowUp v-else />
@@ -125,22 +120,19 @@ watch(
       </div>
     </template>
     <div @mouseleave="handleMouseLeave">
-      <div :id="containerId || 'model-selector'" class="model-tab-page">
-        <el-tooltip v-for="item in models" :key="item.id || item.modelName" class="box-item" effect="light"
-          :disabled="!item.modelDescription" placement="right" popper-class="model-popper">
-          <template #content>
-            <span style="display: inline-block; word-wrap: break-word">
-              {{ item.modelDescription }}
-            </span>
-          </template>
-          <div :class="item.modelName === currentModel
-            ? 'model-option-item-active'
-            : 'model-option-item'
-            " @click="handleModelChange(item)">
-            <span class="model-title">{{ item.displayName || item.modelName }}</span>
-            <i v-if="item.modelName === currentModel" class="iconfont icon-gou"></i>
-          </div>
-        </el-tooltip>
+      <div :id="containerId || 'agent-mode-selector'" class="agent-mode-tab-page">
+        <div
+          v-for="item in agentModes"
+          :key="item.value"
+          :class="item.value === currentMode
+            ? 'agent-mode-option-item-active'
+            : 'agent-mode-option-item'
+          "
+          @click="handleModeChange(item.value)"
+        >
+          <span class="agent-mode-title">{{ item.displayName }}</span>
+          <i v-if="item.value === currentMode" class="iconfont icon-gou"></i>
+        </div>
       </div>
     </div>
   </el-popover>
@@ -149,7 +141,7 @@ watch(
 <style scoped lang="scss">
 @use '@/assets/styles/variables.scss' as *;
 
-.model-select {
+.agent-mode-select {
   display: flex;
   align-items: center;
   max-width: 126px;
@@ -192,7 +184,7 @@ watch(
 
 // 使用容器查询：当父容器宽度小于 200px 时隐藏 select-tag
 @container input-toolbar (max-width: 200px) {
-  .model-select {
+  .agent-mode-select {
     .select-tag {
       display: none;
     }
@@ -203,13 +195,13 @@ watch(
   }
 }
 
-.model-tab-page {
+.agent-mode-tab-page {
   overflow-x: hidden;
   overflow-y: auto;
   width: 100%;
   height: 180px;
 
-  .model-option-item {
+  .agent-mode-option-item {
     align-items: center;
     width: 100%;
     height: 30px;
@@ -228,7 +220,7 @@ watch(
       line-height: 30px;
     }
 
-    .model-title {
+    .agent-mode-title {
       display: inline-flex;
       overflow: hidden;
       width: calc(100% - 20px) !important;
@@ -237,12 +229,12 @@ watch(
     }
   }
 
-  .model-option-item:hover {
+  .agent-mode-option-item:hover {
     background-color: $background-menu !important;
     color: $foreground-menu !important;
   }
 
-  .model-option-item-active {
+  .agent-mode-option-item-active {
     background-color: $background-menu-selection !important;
     color: $text-selected !important;
     align-items: center;
@@ -260,7 +252,7 @@ watch(
       line-height: 30px;
     }
 
-    .model-title {
+    .agent-mode-title {
       display: inline-flex;
       overflow: hidden;
       width: calc(100% - 20px) !important;
@@ -273,7 +265,7 @@ watch(
 
 <style lang="scss">
 // 全局样式，用于弹出框
-.model-popover-class {
+.agent-mode-popover-class {
   background-color: $background-menu !important;
   color: $foreground-menu !important;
   border: 1px solid $border-menu !important;
@@ -287,11 +279,5 @@ watch(
   padding: 8px 0px !important;
   border-radius: 3px;
   box-shadow: 0px 2px 12px 0px rgba(0, 0, 0, 0.16);
-}
-
-.model-popper {
-  max-width: calc(100% - 280px) !important;
-  padding: 4px 6px;
-  color: #606060;
 }
 </style>

@@ -16,8 +16,8 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 interface Resource {
   /** 资源唯一标识 */
   id: string
-  /** 资源类型：code-代码片段, file-文件, image-图片 */
-  type: 'code' | 'file' | 'image'
+  /** 资源类型：code-代码片段, file-文件, image-图片, folder-文件夹 */
+  type: 'code' | 'file' | 'image' | 'folder'
   /** 代码语言（type为code时使用） */
   language?: string
   /** 代码语言ID（type为code时使用） */
@@ -32,6 +32,142 @@ interface Resource {
   endLine?: number
   /** 资源名称 */
   name?: string
+}
+
+/**
+ * 根据 languageId 获取对应的图标类名
+ * 映射常见的语言类型到 VSCode 图标
+ */
+const getLanguageIcon = (languageId?: string): string => {
+  if (!languageId) {
+    return 'vs-icon-file' // 默认文件图标
+  }
+
+  // 转换为小写以便匹配
+  const lang = languageId.toLowerCase()
+
+  // 常见语言映射（使用 vs-icon- 前缀）
+  const languageIconMap: Record<string, string> = {
+    // 主流编程语言
+    'javascript': 'vs-icon-javascript',
+    'typescript': 'vs-icon-typescript',
+    'python': 'vs-icon-python',
+    'java': 'vs-icon-java',
+    'c': 'vs-icon-c',
+    'cpp': 'vs-icon-cpp',
+    'csharp': 'vs-icon-csharp',
+    'cs': 'vs-icon-csharp',
+    'go': 'vs-icon-go',
+    'rust': 'vs-icon-rust',
+    'php': 'vs-icon-php',
+    'ruby': 'vs-icon-ruby',
+    'swift': 'vs-icon-swift',
+    'kotlin': 'vs-icon-kotlin',
+    'dart': 'vs-icon-dart',
+    'scala': 'vs-icon-scala',
+    'clojure': 'vs-icon-clojure',
+    'erlang': 'vs-icon-erlang',
+    'elixir': 'vs-icon-elixir',
+    'haskell': 'vs-icon-haskell',
+    'lua': 'vs-icon-lua',
+    'perl': 'vs-icon-perl',
+    'r': 'vs-icon-r',
+    'matlab': 'vs-icon-matlab',
+    'julia': 'vs-icon-julia',
+    'fsharp': 'vs-icon-fsharp',
+    'ocaml': 'vs-icon-ocaml',
+    'nim': 'vs-icon-nim',
+    'zig': 'vs-icon-zig',
+    'd': 'vs-icon-d',
+    'fortran': 'vs-icon-fortran',
+    'assembly': 'vs-icon-assembly',
+    'cuda': 'vs-icon-cuda',
+    'solidity': 'vs-icon-solidity',
+    'qsharp': 'vs-icon-qsharp',
+
+    // Web 相关
+    'html': 'vs-icon-html',
+    'css': 'vs-icon-css',
+    'scss': 'vs-icon-sass',
+    'sass': 'vs-icon-sass',
+    'less': 'vs-icon-less',
+    'stylus': 'vs-icon-stylus',
+    'json': 'vs-icon-json',
+    'xml': 'vs-icon-xml',
+    'yaml': 'vs-icon-yaml',
+    'yml': 'vs-icon-yaml',
+    'toml': 'vs-icon-toml',
+
+    // 前端框架
+    'vue': 'vs-icon-vue',
+    'react': 'vs-icon-react',
+    'angular': 'vs-icon-angular',
+    'svelte': 'vs-icon-svelte',
+    'jsx': 'vs-icon-react',
+    'tsx': 'vs-icon-react_ts',
+
+    // 标记语言
+    'markdown': 'vs-icon-markdown',
+    'md': 'vs-icon-markdown',
+    'mdx': 'vs-icon-mdx',
+
+    // 脚本语言
+    'shellscript': 'vs-icon-bash',
+    'bash': 'vs-icon-bash',
+    'sh': 'vs-icon-bash',
+    'zsh': 'vs-icon-bash',
+    'powershell': 'vs-icon-powershell',
+    'ps1': 'vs-icon-powershell',
+
+    // 数据库
+    'sql': 'vs-icon-database',
+    'mysql': 'vs-icon-database',
+    'postgresql': 'vs-icon-database',
+    'sqlite': 'vs-icon-database',
+
+    // 配置文件
+    'dockerfile': 'vs-icon-docker',
+    'docker': 'vs-icon-docker',
+    'git': 'vs-icon-git',
+    'gitignore': 'vs-icon-git',
+    'gitattributes': 'vs-icon-git',
+    'makefile': 'vs-icon-makefile',
+    'cmake': 'vs-icon-cmake',
+    'gradle': 'vs-icon-gradle',
+    'maven': 'vs-icon-maven',
+    'npm': 'vs-icon-npm',
+    'yarn': 'vs-icon-yarn',
+    'package.json': 'vs-icon-json',
+    'package-lock.json': 'icon-json',
+    'yarn.lock': 'icon-yarn',
+
+    // 其他
+    'docker-compose': 'icon-docker',
+    'nginx': 'icon-nginx',
+    'apache': 'icon-apache',
+    'vim': 'icon-vim',
+    'vimrc': 'icon-vim',
+    'editorconfig': 'icon-settings',
+    'eslintrc': 'icon-eslint',
+    'prettierrc': 'icon-prettier',
+    'tsconfig': 'icon-typescript-def',
+    'jsconfig': 'icon-javascript',
+  }
+
+  // 直接匹配
+  if (languageIconMap[lang]) {
+    return languageIconMap[lang]
+  }
+
+  // 尝试匹配部分（例如：typescriptreact -> typescript）
+  for (const [key, icon] of Object.entries(languageIconMap)) {
+    if (lang.includes(key)) {
+      return icon
+    }
+  }
+
+  // 默认返回文件图标
+  return 'vs-icon-file'
 }
 
 /**
@@ -103,36 +239,197 @@ const containerStyle = computed(() => {
 })
 
 /**
- * 获取当前内容（纯文本，不包括标签）
+ * 根据资源类型生成显示文本
+ */
+const getResourceDisplayText = (resource: Resource): string => {
+  if (resource.type === 'code') {
+    const filePath = resource.filePath || ''
+    const startLine = resource.startLine
+    const endLine = resource.endLine
+    if (startLine !== undefined && endLine !== undefined) {
+      return `【引用代码片段】${filePath}(${startLine}-${endLine}),`
+    } else if (startLine !== undefined) {
+      return `【引用代码片段】${filePath}(${startLine}),`
+    } else {
+      return `【引用代码片段】${filePath},`
+    }
+  } else if (resource.type === 'file') {
+    const filePath = resource.filePath || resource.name || ''
+    return `【引用代码文件】${filePath},`
+  } else if (resource.type === 'image') {
+    return '【引用图片】,'
+  } else if (resource.type === 'folder') {
+    const folderPath = resource.filePath || resource.name || ''
+    return `【引用文件夹】${folderPath},`
+  }
+  return `【引用资源】${resource.name || resource.id},`
+}
+
+/**
+ * 获取当前内容（用于存储，包含资源标记）
+ * 格式：用户文本 + 【$RES$】resourceId【$RES$】
  */
 const getContent = (): string => {
   const div = editableDiv.value
   if (!div) return ''
-  return extractTextFromNode(div)
+  return extractTextFromNode(div, false)
 }
 
 /**
- * 从节点中提取纯文本
+ * 获取显示内容（用于展示，包含资源描述文本）
+ * 格式：用户文本 + 【引用代码片段】文件路径(行号)
  */
-const extractTextFromNode = (node: Node): string => {
+const getDisplayContent = (): string => {
+  const div = editableDiv.value
+  if (!div) return ''
+  return extractTextFromNode(div, true)
+}
+
+/**
+ * 从节点中提取文本
+ * @param node 节点
+ * @param isDisplay 是否为显示模式（true: 显示文本，false: 存储文本）
+ */
+const extractTextFromNode = (node: Node, isDisplay: boolean): string => {
   let text = ''
   for (const child of Array.from(node.childNodes)) {
     if (child.nodeType === Node.TEXT_NODE) {
       text += child.textContent || ''
     } else if (child.nodeType === Node.ELEMENT_NODE) {
-      // 如果是资源标签，提取其标识符
+      // 如果是资源标签，根据模式提取不同格式
       const element = child as HTMLElement
       if (element.classList && element.classList.contains('resource-tag')) {
         const resourceId = element.getAttribute('data-resource-id')
         if (resourceId) {
-          text += `@${resourceId}`
+          if (isDisplay) {
+            // 显示模式：查找资源并生成显示文本
+            const resource = props.resources.find((r) => r.id === resourceId)
+            if (resource) {
+              text += getResourceDisplayText(resource)
+            } else {
+              text += `【引用资源】${resourceId}`
+            }
+          } else {
+            // 存储模式：使用标记格式
+            text += `【$RES$】${resourceId}【$RES$】`
+          }
         }
       } else {
-        text += extractTextFromNode(child)
+        text += extractTextFromNode(child, isDisplay)
       }
     }
   }
   return text
+}
+
+/**
+ * 解析存储格式的内容，恢复资源标签
+ * 格式：【$RES$】resourceId【$RES$】
+ */
+const parseContentWithResources = (content: string): void => {
+  const div = editableDiv.value
+  if (!div) return
+
+  // 清空当前内容
+  div.textContent = ''
+
+  // 使用正则表达式匹配资源标记
+  const resourcePattern = /【\$RES\$】(.*?)【\$RES\$】/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = resourcePattern.exec(content)) !== null) {
+    // 添加标记前的文本
+    if (match.index > lastIndex) {
+      const textBefore = content.substring(lastIndex, match.index)
+      if (textBefore) {
+        div.appendChild(document.createTextNode(textBefore))
+      }
+    }
+
+    // 查找对应的资源并插入标签
+    const resourceId = match[1]
+    const resource = props.resources.find((r) => r.id === resourceId)
+    if (resource) {
+      // 创建资源标签元素（复用 insertResourceTag 的逻辑）
+      const tag = document.createElement('span')
+      tag.className = 'resource-tag'
+      tag.setAttribute('data-resource-id', resource.id)
+      tag.setAttribute('contenteditable', 'false')
+      const label = getResourceLabel(resource)
+      const tagContent = document.createElement('span')
+      tagContent.className = 'resource-tag-content'
+
+      const iconContainer = document.createElement('span')
+      iconContainer.className = 'resource-tag-icon-container'
+
+      // 根据资源类型和 languageId 获取图标
+      let iconClass = 'vs-icon-file' // 默认图标
+      if (resource.type === 'code' && resource.languageId) {
+        iconClass = getLanguageIcon(resource.languageId)
+      } else if (resource.type === 'file') {
+        // 对于文件类型，尝试从文件路径推断语言
+        const filePath = resource.filePath || resource.name || ''
+        const ext = filePath.split('.').pop()?.toLowerCase()
+        if (ext) {
+          iconClass = getLanguageIcon(ext)
+        }
+      } else if (resource.type === 'image') {
+        iconClass = 'vs-icon-image'
+      } else if (resource.type === 'folder') {
+        iconClass = 'vs-icon-folder'
+      }
+
+      // 创建图标元素
+      const icon = document.createElement('i')
+      icon.className = `vs-icon ${iconClass} resource-tag-icon`
+
+      const closeBtn = document.createElement('span')
+      closeBtn.className = 'resource-tag-close'
+      closeBtn.textContent = '×'
+      closeBtn.setAttribute('title', '删除')
+
+      // 先插入图标，再插入关闭按钮
+      iconContainer.appendChild(icon)
+      iconContainer.appendChild(closeBtn)
+
+      const labelSpan = document.createElement('span')
+      labelSpan.className = 'resource-tag-label'
+      labelSpan.textContent = label
+
+      tagContent.appendChild(iconContainer)
+      tagContent.appendChild(labelSpan)
+      tag.appendChild(tagContent)
+
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        removeResource(resource.id)
+      })
+
+      div.appendChild(tag)
+      resourcesMap.value.set(resource.id, tag)
+    } else {
+      // 如果找不到资源，保留原始标记文本
+      div.appendChild(document.createTextNode(match[0]))
+    }
+
+    lastIndex = match.index + match[0].length
+  }
+
+  // 添加剩余的文本
+  if (lastIndex < content.length) {
+    const textAfter = content.substring(lastIndex)
+    if (textAfter) {
+      div.appendChild(document.createTextNode(textAfter))
+    }
+  }
+
+  // 确保输入框有足够的高度和可点击区域
+  nextTick(() => {
+    ensureInputArea()
+    ensureMinHeight()
+  })
 }
 
 /**
@@ -141,8 +438,15 @@ const extractTextFromNode = (node: Node): string => {
 const setContent = (content: string): void => {
   const div = editableDiv.value
   if (!div) return
-  // 简单设置文本内容，资源标签通过 resources prop 单独管理
-  div.textContent = content
+
+  // 检查内容是否包含资源标记
+  if (content.includes('【$RES$】')) {
+    // 如果包含资源标记，解析并恢复资源标签
+    parseContentWithResources(content)
+  } else {
+    // 简单设置文本内容，资源标签通过 resources prop 单独管理
+    div.textContent = content
+  }
 }
 
 /**
@@ -189,7 +493,14 @@ const getResourceLabel = (resource: Resource): string => {
     const filePath = resource.filePath || 'code'
     // 只显示文件名，不显示完整路径
     const fileName = filePath.split(/[/\\]/).pop() || filePath
-    return `${resource.language || 'code'}:${fileName}`
+    // 如果有起始行号和结束行号，显示为 文件名+(startLine-endLine)
+    if (resource.startLine !== undefined && resource.endLine !== undefined) {
+      return `${fileName}(${resource.startLine}-${resource.endLine})`
+    } else if (resource.startLine !== undefined) {
+      // 如果只有起始行号，只显示起始行号
+      return `${fileName}(${resource.startLine})`
+    }
+    return fileName
   } else if (resource.type === 'file') {
     const filePath = resource.filePath || resource.name || 'file'
     return filePath.split(/[/\\]/).pop() || filePath
@@ -206,6 +517,107 @@ const updateResourceTagContent = (tag: HTMLElement, resource: Resource): void =>
   const labelSpan = tag.querySelector('.resource-tag-label')
   if (labelSpan) {
     labelSpan.textContent = getResourceLabel(resource)
+  }
+
+  // 更新图标
+  let iconContainer = tag.querySelector('.resource-tag-icon-container') as HTMLElement
+  // 如果图标容器不存在，创建它
+  if (!iconContainer) {
+    const tagContent = tag.querySelector('.resource-tag-content')
+    if (tagContent) {
+      iconContainer = document.createElement('span')
+      iconContainer.className = 'resource-tag-icon-container'
+      // 将图标容器插入到标签内容的最前面
+      const labelSpan = tagContent.querySelector('.resource-tag-label')
+      if (labelSpan) {
+        tagContent.insertBefore(iconContainer, labelSpan)
+      } else {
+        tagContent.appendChild(iconContainer)
+      }
+    } else {
+      return
+    }
+  }
+
+  if (iconContainer) {
+    // 检查是否已有图标元素
+    let icon = iconContainer.querySelector('.resource-tag-icon') as HTMLElement
+
+    // 根据资源类型和 languageId 获取图标
+    let iconClass = 'vs-icon-file' // 默认图标
+    if (resource.type === 'code' && resource.languageId) {
+      iconClass = getLanguageIcon(resource.languageId)
+    } else if (resource.type === 'file') {
+      // 对于文件类型，尝试从文件路径推断语言
+      const filePath = resource.filePath || resource.name || ''
+      const ext = filePath.split('.').pop()?.toLowerCase()
+      if (ext) {
+        iconClass = getLanguageIcon(ext)
+      }
+    } else if (resource.type === 'image') {
+      iconClass = 'vs-icon-image'
+    } else if (resource.type === 'folder') {
+      iconClass = 'vs-icon-folder'
+    }
+
+    // 如果图标不存在，先创建它（在关闭按钮之前）
+    if (!icon) {
+      icon = document.createElement('i')
+      icon.className = `vs-icon ${iconClass} resource-tag-icon`
+
+      // 先插入图标到容器的最前面
+      if (iconContainer.firstChild) {
+        iconContainer.insertBefore(icon, iconContainer.firstChild)
+      } else {
+        iconContainer.appendChild(icon)
+      }
+
+      // 如果插入失败，尝试直接替换 firstChild
+      const insertedIcon = iconContainer.querySelector('.resource-tag-icon') as HTMLElement
+      if (!insertedIcon || insertedIcon !== icon) {
+        if (iconContainer.firstChild && iconContainer.firstChild !== icon) {
+          iconContainer.replaceChild(icon, iconContainer.firstChild)
+        } else if (!iconContainer.contains(icon)) {
+          iconContainer.insertBefore(icon, iconContainer.firstChild || null)
+        }
+      }
+    } else {
+      // 更新图标类名
+      icon.className = `vs-icon ${iconClass} resource-tag-icon`
+    }
+
+    // 检查是否已有关闭按钮，如果不存在则创建（在图标之后）
+    let closeBtn = iconContainer.querySelector('.resource-tag-close') as HTMLElement
+    if (!closeBtn) {
+      closeBtn = document.createElement('span')
+      closeBtn.className = 'resource-tag-close'
+      closeBtn.textContent = '×'
+      closeBtn.setAttribute('title', '删除')
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        removeResource(resource.id)
+      })
+      // 关闭按钮插入到图标之后
+      if (icon && icon.parentNode === iconContainer) {
+        if (icon.nextSibling) {
+          iconContainer.insertBefore(closeBtn, icon.nextSibling)
+        } else {
+          iconContainer.appendChild(closeBtn)
+        }
+      } else {
+        iconContainer.appendChild(closeBtn)
+      }
+    }
+
+    // 最终验证：确保图标在关闭按钮之前
+    if (icon && closeBtn && icon.parentNode === iconContainer && closeBtn.parentNode === iconContainer) {
+      const iconIndex = Array.from(iconContainer.children).indexOf(icon)
+      const closeBtnIndex = Array.from(iconContainer.children).indexOf(closeBtn)
+      if (iconIndex > closeBtnIndex) {
+        iconContainer.insertBefore(icon, closeBtn)
+      }
+    }
   }
 }
 
@@ -247,10 +659,26 @@ const insertResourceTag = (resource: Resource): void => {
   const iconContainer = document.createElement('span')
   iconContainer.className = 'resource-tag-icon-container'
 
+  // 根据资源类型和 languageId 获取图标
+  let iconClass = 'vs-icon-file' // 默认图标
+  if (resource.type === 'code' && resource.languageId) {
+    iconClass = getLanguageIcon(resource.languageId)
+  } else if (resource.type === 'file') {
+    // 对于文件类型，尝试从文件路径推断语言
+    const filePath = resource.filePath || resource.name || ''
+    const ext = filePath.split('.').pop()?.toLowerCase()
+    if (ext) {
+      iconClass = getLanguageIcon(ext)
+    }
+  } else if (resource.type === 'image') {
+    iconClass = 'vs-icon-image'
+  } else if (resource.type === 'folder') {
+    iconClass = 'vs-icon-folder'
+  }
+
   // 创建图标
-  const icon = document.createElement('span')
-  icon.className = 'resource-tag-icon'
-  icon.textContent = '📎'
+  const icon = document.createElement('i')
+  icon.className = `vs-icon ${iconClass} resource-tag-icon`
 
   // 创建关闭按钮
   const closeBtn = document.createElement('span')
@@ -259,6 +687,7 @@ const insertResourceTag = (resource: Resource): void => {
   closeBtn.setAttribute('title', '删除')
 
   // 图标和关闭按钮放在同一个容器中，通过 hover 切换显示
+  // 确保先添加图标，再添加关闭按钮
   iconContainer.appendChild(icon)
   iconContainer.appendChild(closeBtn)
 
@@ -333,6 +762,16 @@ const updateResources = (resources: Resource[]): void => {
     if (existingTag) {
       // 如果标签已存在，更新其内容
       updateResourceTagContent(existingTag, resource)
+      // 在 nextTick 后再次验证图标是否存在，如果不存在则重新创建
+      nextTick(() => {
+        const iconContainer = existingTag.querySelector('.resource-tag-icon-container') as HTMLElement
+        if (iconContainer) {
+          const icon = iconContainer.querySelector('.resource-tag-icon') as HTMLElement
+          if (!icon) {
+            updateResourceTagContent(existingTag, resource)
+          }
+        }
+      })
       return
     }
 
@@ -371,6 +810,25 @@ const updateResources = (resources: Resource[]): void => {
       ensureInputArea()
       ensureMinHeight()
     }
+
+    // 在 nextTick 后再次验证所有资源标签的图标是否存在
+    resources.forEach((resource) => {
+      const tag = resourcesMap.value.get(resource.id)
+      if (tag) {
+        const iconContainer = tag.querySelector('.resource-tag-icon-container') as HTMLElement
+        if (iconContainer) {
+          const icon = iconContainer.querySelector('.resource-tag-icon') as HTMLElement
+          if (!icon) {
+            updateResourceTagContent(tag, resource)
+          }
+        }
+      }
+    })
+  })
+
+  // 延迟同步值，避免触发不必要的 DOM 重建
+  nextTick(() => {
+    syncValue()
   })
 }
 
@@ -412,7 +870,7 @@ const removeResource = (resourceId: string): void => {
  * 清理空节点
  */
 const cleanupEmptyNodes = (node: Node): void => {
-  const walker = document.createTreeWalker(node, NodeFilter.SHOW_ALL, null, false)
+  const walker = document.createTreeWalker(node, NodeFilter.SHOW_ALL)
   const nodesToRemove: Node[] = []
 
   let currentNode: Node | null
@@ -753,7 +1211,7 @@ const getTextNodeAtPosition = (
   position: number
 ): { node: Text; offset: number } | null => {
   let currentPos = 0
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false)
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
 
   let node: Node | null
   while ((node = walker.nextNode())) {
@@ -771,7 +1229,19 @@ const getTextNodeAtPosition = (
 watch(
   () => props.modelValue,
   (newVal) => {
-    if (newVal !== getContent()) {
+    const currentContent = getContent()
+    if (newVal !== currentContent) {
+      // 如果新值和当前值都包含资源标记，且资源标记相同，则不需要重新创建 DOM
+      // 这样可以避免在 updateResources 后触发不必要的 DOM 重建
+      if (newVal && currentContent && newVal.includes('【$RES$】') && currentContent.includes('【$RES$】')) {
+        // 提取所有资源ID进行比较
+        const newResourceIds = Array.from(newVal.matchAll(/【\$RES\$】(.*?)【\$RES\$】/g)).map(m => m[1]).sort()
+        const currentResourceIds = Array.from(currentContent.matchAll(/【\$RES\$】(.*?)【\$RES\$】/g)).map(m => m[1]).sort()
+        if (JSON.stringify(newResourceIds) === JSON.stringify(currentResourceIds)) {
+          // 资源ID相同，只是文本内容可能不同，不需要重新创建 DOM
+          return
+        }
+      }
       setContent(newVal)
     }
   }
@@ -809,6 +1279,9 @@ defineExpose({
   focus,
   blur,
   setCursorPosition,
+  getContent,
+  getDisplayContent,
+  setContent,
 })
 </script>
 
@@ -903,38 +1376,55 @@ defineExpose({
     background: $vscode-badge-background;
     color: $vscode-badge-foreground;
     border-radius: $border-radius-sm;
-    padding: 2px 6px;
+    padding: 2px 2px;
     font-size: $font-size-small;
-    line-height: 18px;
-    max-width: 200px;
+    line-height: 1;
+    max-width: 250px;
+    min-height: 18px;
   }
 
   .resource-tag-icon-container {
     position: relative;
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-right: $spacing-xs;
+    margin-right: 4px;
     flex-shrink: 0;
   }
 
   .resource-tag-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    font-size: $font-size-small;
+    display: inline-block !important;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
     margin-right: 0;
+    position: relative;
+    z-index: 0;
+    line-height: 1;
+    // vs-icon 图标通过 background-image 显示
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    // 确保背景图片能正确显示
+    flex-shrink: 0;
   }
 
   .resource-tag-label {
+    display: inline-flex;
+    align-items: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 150px;
+    max-width: 234px;
+    line-height: 1;
+    height: 14px;
+    line-height: 14px;
+    font-size: 12px;
   }
 
   .resource-tag-close {

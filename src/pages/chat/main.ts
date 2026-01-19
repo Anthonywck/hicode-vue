@@ -1,6 +1,7 @@
 // Chat 页面入口文件
 import '@/assets/styles/global.scss'
 import '@/assets/iconfont/iconfont.css'
+import '@/assets/iconvscode/iconfont-weapp/iconfont-weapp-icon.css'
 import 'element-plus/dist/index.css'
 // 导入 highlight.js 主题样式
 import 'highlight.js/styles/paraiso-dark.css'

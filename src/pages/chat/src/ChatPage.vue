@@ -20,7 +20,7 @@ import CodeSelect from '@/components/business/CodeSelect.vue'
 import { useMessageHandler, type MessageEvent } from '@/composables/useMessageHandler'
 import { usePostMessage } from '@/composables/usePostMessage'
 import * as OP from '@/utils/messageType'
-import { testChatData } from '../../../../test-chat-data'
+// import { testChatData } from '../../../../test-chat-data'
 
 /**
  * 聊天消息数据类型定义
@@ -28,8 +28,12 @@ import { testChatData } from '../../../../test-chat-data'
 interface ChatMessageData {
   /** 聊天ID */
   chatId: string
-  /** 显示的问题 */
+  /** 显示的问题（包含【引用代码片段】等描述文本） */
   display_question?: string
+  /** 存储格式的问题（包含【$RES$】resourceId【$RES$】标记，用于恢复） */
+  question?: string
+  /** 资源列表（用于恢复资源标签） */
+  resources?: Resource[]
   /** 显示的答案 */
   display_answer?: string
   /** 模型名称 */
@@ -72,8 +76,8 @@ interface PromptItem {
 interface Resource {
   /** 资源唯一标识 */
   id: string
-  /** 资源类型：code-代码片段, file-文件, image-图片 */
-  type: 'code' | 'file' | 'image'
+  /** 资源类型：code-代码片段, file-文件, image-图片, folder-文件夹 */
+  type: 'code' | 'file' | 'image' | 'folder'
   /** 代码语言（type为code时使用） */
   language?: string
   /** 代码语言ID（type为code时使用） */
@@ -117,7 +121,7 @@ const { postMessage } = usePostMessage()
 // 响应式数据
 const chatList = ref<ChatMessageData[]>([])
 const question = ref('')
-const historyQuestion = ref('')
+const historyQuestion = ref('') // 存储格式的问题（包含【$RES$】标记，用于恢复
 const resources = ref<Resource[]>([])
 const selectedCode = ref('')
 const selectedLanguage = ref('')
@@ -129,10 +133,13 @@ const chatModels = ref<ChatModel[]>([])
 const modelName = ref('')
 const sysPrompts = ref<PromptItem[]>([])
 const userPrompts = ref<PromptItem[]>([])
+const agentMode = ref<'chat' | 'agent'>('chat')
+const agentModePopoverVisible = ref(false)
 const modelPopoverVisible = ref(false)
 const popoverVisible = ref(false)
 const optionId = ref(0)
 const modelOptionId = ref(0)
+const agentModeOptionId = ref(0)
 const containerClass = ref('chat-container-blur')
 const codeSelectClass = ref('code-select-blur')
 const isFocused = ref(false)
@@ -302,6 +309,22 @@ const onMessage = async (event: MessageEvent): Promise<void> => {
       modelName.value = ''
     }
     modelOptionId.value++
+  } else if (message === OP.HICODE_CHANGE_AGENT_MODE_B2F_RES) {
+    // 处理 Agent 模式切换响应
+    const { mode, agentMode: agentModeValue } = data as {
+      mode?: 'chat' | 'agent'
+      agentMode?: 'chat' | 'agent'
+    }
+    agentMode.value = mode || agentModeValue || 'chat'
+    agentModeOptionId.value++
+  } else if (message === OP.HICODE_GET_SETTINGS_B2F_RES) {
+    // 处理获取设置响应
+    const { agentMode: agentModeValue } = data as {
+      agentMode?: 'chat' | 'agent'
+    }
+    if (agentModeValue) {
+      agentMode.value = agentModeValue
+    }
   } else if (message === OP.HICODE_ERROR_B2F) {
     // 处理错误消息
     handleError(data as { operationType?: string; error?: string; errorStack?: string })
@@ -430,8 +453,10 @@ const handleHisChats = (data: ChatMessageData[]): void => {
   }
 
   // 处理历史对话的 historyQuestion
+  // 优先使用存储格式的问题（question），如果没有则使用显示格式的问题（display_question）
   if (data.length > 0 && data[data.length - 1]) {
-    historyQuestion.value = data[data.length - 1]?.display_question || ''
+    const lastMessage = data[data.length - 1]
+    historyQuestion.value = lastMessage?.question || lastMessage?.display_question || ''
   }
 
   // 处理历史对话展示
@@ -475,8 +500,12 @@ const handleError = (data: {
 
 /**
  * 添加聊天消息
+ * @param chatId 聊天ID
+ * @param displayQuestion 显示格式的问题（包含【引用代码片段】等描述文本）
+ * @param question 存储格式的问题（包含【$RES$】resourceId【$RES$】标记，用于恢复）
+ * @param resources 资源列表（用于恢复资源标签）
  */
-const addChatMessage = (chatId: string, question: string): void => {
+const addChatMessage = (chatId: string, displayQuestion: string, question?: string, resources?: Resource[]): void => {
   const chatIds = chatList.value.map((chat) => chat.chatId)
   if (chatIds.includes(chatId)) {
     return
@@ -484,7 +513,9 @@ const addChatMessage = (chatId: string, question: string): void => {
 
   const chatMessage: ChatMessageData = {
     chatId,
-    display_question: question || historyQuestion.value,
+    display_question: displayQuestion || historyQuestion.value,
+    question: question || historyQuestion.value, // 存储格式的问题
+    resources: resources ? [...resources] : [], // 保存资源数据副本
     display_answer: '',
     status: 'loading',
   }
@@ -579,16 +610,48 @@ const handleArrowUpKey = (e: KeyboardEvent): void => {
 
   if (e.keyCode === 38) {
     if (question.value.trim() === '') {
-      question.value = historyQuestion.value
-      nextTick(() => {
-        if (questionInput.value) {
-          questionInput.value.focus()
-          const textLength = question.value.length
-          if (questionInput.value.setCursorPosition) {
-            questionInput.value.setCursorPosition(textLength)
-          }
+      // 从历史记录中查找对应的消息，恢复资源数据
+      const lastMessage = chatList.value[chatList.value.length - 1]
+      if (lastMessage && lastMessage.question) {
+        // 恢复存储格式的问题（包含【$RES$】标记）
+        question.value = lastMessage.question
+
+        // 恢复资源数据（先恢复资源，确保 ResourceInput 组件能接收到）
+        if (lastMessage.resources && lastMessage.resources.length > 0) {
+          resources.value = [...lastMessage.resources]
+        } else {
+          resources.value = []
         }
-      })
+
+        // 等待 resources 更新到组件后，再设置内容
+        nextTick(() => {
+          nextTick(() => {
+            if (questionInput.value && lastMessage.question) {
+              // 设置内容，会自动解析资源标记并恢复资源标签
+              // 此时 resources.value 已经恢复并传递到组件，parseContentWithResources 可以找到对应的资源
+              questionInput.value.setContent?.(lastMessage.question)
+              questionInput.value.focus()
+              const textLength = question.value.length
+              if (questionInput.value.setCursorPosition) {
+                questionInput.value.setCursorPosition(textLength)
+              }
+            }
+          })
+        })
+      } else {
+        // 降级处理：如果没有历史消息，使用 historyQuestion
+        question.value = historyQuestion.value
+        nextTick(() => {
+          if (questionInput.value) {
+            questionInput.value.setContent?.(historyQuestion.value)
+            questionInput.value.focus()
+            const textLength = question.value.length
+            if (questionInput.value.setCursorPosition) {
+              questionInput.value.setCursorPosition(textLength)
+            }
+          }
+        })
+      }
     }
   }
 }
@@ -614,36 +677,42 @@ const sendMessage = (): void => {
     return
   }
 
-  // 构建包含资源的问题内容
-  let questionText = question.value
-  const codeResources = resources.value.filter((r) => r.type === 'code')
-  if (codeResources.length > 0) {
-    const codeBlocks = codeResources.map((resource) => {
-      return getMarkedCode(
-        resource.code || '',
-        resource.language || resource.languageId || ''
-      )
-    })
-    questionText = questionText
-      ? `${questionText}\n${codeBlocks.join('\n')}\n`
-      : codeBlocks.join('\n\n')
+  // 从 ResourceInput 组件获取内容
+  let questionText = '' // 用于存储的内容（包含【$RES$】标记）
+  let displayQuestionText = '' // 用于显示的内容（包含资源描述文本）
+
+  if (questionInput.value) {
+    // 获取存储格式的内容（包含【$RES$】resourceId【$RES$】）
+    questionText = questionInput.value.getContent?.() || question.value
+
+    // 获取显示格式的内容（包含【引用代码片段】等描述文本）
+    displayQuestionText = questionInput.value.getDisplayContent?.() || question.value
+  } else {
+    // 降级处理：如果没有组件引用，使用原有逻辑
+    questionText = question.value
+    displayQuestionText = question.value
   }
 
+  // 保存存储格式的问题（包含【$RES$】标记），用于上翻恢复
   historyQuestion.value = questionText
 
   const editEnd = new Date().getTime()
   const editTime = editStart.value === 0 ? 0 : (editEnd - editStart.value) / 1000
   const chatId = guid()
 
+  // 发送显示格式的内容给大模型（包含【引用代码片段】等描述文本）
+  // 而不是存储格式的内容（包含【$RES$】标记）
   postMessage('sendMessage', {
-    message: historyQuestion.value,
+    message: displayQuestionText,
     editTime: editTime,
     chatId: chatId,
   })
 
   answerStatus.value = true
   getChatBoxStyle()
-  addChatMessage(chatId, historyQuestion.value)
+  // 使用显示格式的内容存储到 display_question，存储格式的内容存储到 question
+  // 同时保存资源数据，用于上翻时恢复资源标签
+  addChatMessage(chatId, displayQuestionText, questionText, [...resources.value])
 
   nextTick(() => {
     question.value = ''
@@ -652,6 +721,18 @@ const sendMessage = (): void => {
     if (chatBox.value) {
       startScroll()
     }
+  })
+}
+
+/**
+ * 处理 Agent 模式切换
+ */
+const handleAgentModeChange = (mode: 'chat' | 'agent'): void => {
+  agentModePopoverVisible.value = false
+  agentMode.value = mode
+  postMessage(OP.HICODE_CHANGE_AGENT_MODE_F2B_REQ, {
+    mode: mode,
+    agentMode: mode,
   })
 }
 
@@ -732,6 +813,13 @@ const handleUserPromptClick = (promptId: string | number): void => {
 }
 
 /**
+ * 处理 Agent 模式选择器打开
+ */
+const handleAgentModeSelectorOpen = (): void => {
+  // Agent 模式选择器不需要加载数据，因为选项是固定的
+}
+
+/**
  * 处理模型选择器打开
  */
 const handleModelSelectorOpen = (): void => {
@@ -787,7 +875,7 @@ useMessageHandler(onMessage)
 // 组件挂载
 onMounted(() => {
   // 临时使用测试数据
-  chatList.value = testChatData as ChatMessageData[]
+  // chatList.value = testChatData as ChatMessageData[]
   window.addEventListener('resize', handleResize)
   nextTick(() => {
     getChatBoxStyle()
@@ -833,13 +921,17 @@ onBeforeUnmount(() => {
           </div>
 
           <!-- 输入工具栏 -->
-          <InputToolbar :models="chatModels" :current-model="currModel" :system-prompts="sysPrompts"
-            :user-prompts="userPrompts" :model-popover-visible="modelPopoverVisible"
+          <InputToolbar :current-agent-mode="agentMode" :models="chatModels" :current-model="currModel"
+            :system-prompts="sysPrompts" :user-prompts="userPrompts"
+            :agent-mode-popover-visible="agentModePopoverVisible" :model-popover-visible="modelPopoverVisible"
             :prompt-popover-visible="popoverVisible" :option-id="optionId" :model-option-id="modelOptionId"
+            :agent-mode-option-id="agentModeOptionId" @agent-mode-change="handleAgentModeChange"
             @model-change="handleModelChange" @system-prompt-select="handleSysPromptClick"
             @user-prompt-select="handleUserPromptClick" @send="sendMessage"
+            @update:agentModePopoverVisible="agentModePopoverVisible = $event"
             @update:modelPopoverVisible="modelPopoverVisible = $event"
-            @update:promptPopoverVisible="popoverVisible = $event" @model-selector-open="handleModelSelectorOpen"
+            @update:promptPopoverVisible="popoverVisible = $event"
+            @agent-mode-selector-open="handleAgentModeSelectorOpen" @model-selector-open="handleModelSelectorOpen"
             @prompt-selector-open="handlePromptSelectorOpen" />
         </div>
       </div>

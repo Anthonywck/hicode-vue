@@ -118,57 +118,41 @@ watch(
 </script>
 
 <template>
-  <el-popover
-    v-model:visible="popoverVisible"
-    placement="top"
-    trigger="click"
-    :width="'calc(100% - 40px)'"
-    :show-arrow="false"
-    popper-class="prompt-popover-class"
-    @update:visible="(val) => emit('update:visible', val)"
-  >
+  <el-popover v-model:visible="popoverVisible" placement="top" trigger="click" :width="'calc(100% - 40px)'"
+    :show-arrow="false" popper-class="prompt-popover-class" @update:visible="(val) => emit('update:visible', val)">
     <template #reference>
-      <div class="model-select" @click="handleSelectClick" style="margin-left: 20px">
+      <div class="model-select" @click="handleSelectClick">
         <i class="iconfont icon-moban"></i>
         <span>选择模板</span>
       </div>
     </template>
     <div @mouseleave="handleMouseLeave">
       <PromptTabs v-model="activeTab" @tab-change="handleTabChange" />
-      <PromptList
-        v-if="activeTab === 'system'"
-        :id="`sys_${containerId || 'prompt'}`"
-        :prompts="systemPrompts"
-        type="system"
-        :show-shortcut="true"
-        :container-id="`sys_${containerId || 'prompt'}`"
-        @prompt-click="handleSystemPromptClick"
-      />
-      <PromptList
-        v-if="activeTab === 'custom'"
-        :id="`user_${containerId || 'prompt'}`"
-        :prompts="userPrompts"
-        type="custom"
-        :show-shortcut="false"
-        :container-id="`user_${containerId || 'prompt'}`"
-        @prompt-click="handleUserPromptClick"
-      />
+      <PromptList v-if="activeTab === 'system'" :id="`sys_${containerId || 'prompt'}`" :prompts="systemPrompts"
+        type="system" :show-shortcut="true" :container-id="`sys_${containerId || 'prompt'}`"
+        @prompt-click="handleSystemPromptClick" />
+      <PromptList v-if="activeTab === 'custom'" :id="`user_${containerId || 'prompt'}`" :prompts="userPrompts"
+        type="custom" :show-shortcut="false" :container-id="`user_${containerId || 'prompt'}`"
+        @prompt-click="handleUserPromptClick" />
     </div>
   </el-popover>
 </template>
 
 <style scoped lang="scss">
 @use '@/assets/styles/variables.scss' as *;
+
 .model-select {
   display: flex;
   align-items: center;
-  width: 126px;
+  max-width: 126px;
+  min-width: fit-content;
   height: 18px;
   color: $vscode-input-foreground;
   font-weight: $font-weight-normal;
   font-size: $font-size-base;
   letter-spacing: 0;
   cursor: pointer;
+  flex-shrink: 1;
 
   .iconfont {
     margin-right: 4px;
@@ -176,10 +160,26 @@ watch(
     line-height: 1;
     display: flex;
     align-items: center;
+    flex-shrink: 0;
   }
 
   span {
     line-height: 1;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+}
+
+// 使用容器查询：当父容器宽度小于 200px 时隐藏文本
+@container input-toolbar (max-width: 200px) {
+  .model-select {
+    span {
+      display: none;
+    }
+
+    .iconfont {
+      margin-right: 0;
+    }
   }
 }
 </style>
@@ -202,4 +202,3 @@ watch(
   box-shadow: 0px 2px 12px 0px rgba(0, 0, 0, 0.16);
 }
 </style>
-

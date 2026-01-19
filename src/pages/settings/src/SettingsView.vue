@@ -26,6 +26,8 @@ interface ModelData {
   modelName: string
   displayName?: string
   maxContextTokens?: number
+  maxOutputTokens?: number
+  temperature?: number
   supportMultimodal?: boolean
   vendor: string
   modelDescription?: string
@@ -67,7 +69,7 @@ interface SpecificationData {
 // 处理设置数据初始化
 const handleSettingsInit = (event: MessageEvent) => {
   const { message, data } = event.data
-  
+
   if (message === HICODE_GET_SETTINGS_B2F_RES) {
     const settingsData = data as {
       userName?: string
@@ -79,14 +81,14 @@ const handleSettingsInit = (event: MessageEvent) => {
       prompts?: PromptData[]
       specifications?: SpecificationData[]
     }
-    
+
     // 初始化登录状态
     loginFormRef.value?.initLoginState({
       userName: settingsData.userName || '',
       password: settingsData.password || '',
       loginStatus: settingsData.loginStatus || false,
     })
-    
+
     // 初始化模型列表（在父组件中管理）
     modelList.value = JSON.parse(JSON.stringify(settingsData.modelOptions || []))
 
@@ -178,7 +180,7 @@ onMounted(() => {
 
 .setting-form {
   padding: 12px 20px;
-  
+
   &:hover {
     border: 0px !important;
     background-color: $vscode-sideBar-background !important;

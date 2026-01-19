@@ -32,9 +32,6 @@ const initComplete = (data?: { complete?: string }) => {
     completeModel.value = data.complete === 'auto'
   }
 }
-function calculateSum(arr) {
-  return arr.reduce((sum, num) => sum + num, 0);
-}
 
 defineExpose({
   initComplete,

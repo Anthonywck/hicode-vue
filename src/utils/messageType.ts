@@ -42,6 +42,12 @@ export const HICODE_REFRESH_MODELS_B2F_RES = 'hicode_refresh_models_b2f_res'
 /** 前端请求，切换补全大模型 */
 export const HICODE_CHANGE_FILL_MODEL_F2B_REQ = 'hicode_change_fill_model_f2b_req'
 
+/** 前端请求，切换 Agent 模式 */
+export const HICODE_CHANGE_AGENT_MODE_F2B_REQ = 'hicode_change_agent_mode_f2b_req'
+
+/** 插件端响应，切换 Agent 模式响应 */
+export const HICODE_CHANGE_AGENT_MODE_B2F_RES = 'hicode_change_agent_mode_b2f_res'
+
 // ========== 系统消息 ==========
 
 /** 前端通知，控制台日志 */
