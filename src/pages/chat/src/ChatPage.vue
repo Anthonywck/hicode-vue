@@ -20,7 +20,7 @@ import CodeSelect from '@/components/business/CodeSelect.vue'
 import { useMessageHandler, type MessageEvent } from '@/composables/useMessageHandler'
 import { usePostMessage } from '@/composables/usePostMessage'
 import * as OP from '@/utils/messageType'
-import { testChatData } from '../../../../test-chat-data'
+// import { testChatData } from '../../../../test-chat-data'
 
 /**
  * 聊天消息数据类型定义
@@ -787,7 +787,7 @@ useMessageHandler(onMessage)
 // 组件挂载
 onMounted(() => {
   // 临时使用测试数据
-  chatList.value = testChatData as ChatMessageData[]
+  // chatList.value = testChatData as ChatMessageData[]
   window.addEventListener('resize', handleResize)
   nextTick(() => {
     getChatBoxStyle()
